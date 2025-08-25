@@ -1,0 +1,34 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    font-family: 'Circular', -apple-system, BlinkMacSystemFont, 'Roboto', 'Helvetica Neue', sans-serif;
+    background-color: #f7f7f7;
+    color: #222222;
+  }
+}
+
+@layer components {
+  .btn-airbnb-primary {
+    @apply bg-airbnb-red-500 hover:bg-airbnb-red-600 text-white font-semibold py-3 px-6 rounded-airbnb-lg transition-all duration-300 shadow-airbnb hover:shadow-airbnb-lg hover:shadow-airbnb-glow transform hover:-translate-y-0.5;
+  }
+  
+  .btn-airbnb-secondary {
+    @apply bg-white hover:bg-airbnb-50 text-airbnb-700 border border-airbnb-200 font-semibold py-3 px-6 rounded-airbnb-lg transition-all duration-300 shadow-airbnb hover:shadow-airbnb-lg transform hover:-translate-y-0.5;
+  }
+  
+  .btn-airbnb-success {
+    @apply bg-airbnb-green-500 hover:bg-airbnb-green-600 text-white font-semibold py-3 px-6 rounded-airbnb-lg transition-all duration-300 shadow-airbnb hover:shadow-airbnb-lg transform hover:-translate-y-0.5;
+  }
+  
+  .card-airbnb {
+    @apply bg-white rounded-airbnb-lg shadow-airbnb border border-airbnb-100;
+  }
+  
+  .input-airbnb {
+    @apply w-full px-4 py-3 border border-airbnb-200 rounded-airbnb-lg focus:outline-none focus:ring-2 focus:ring-airbnb-red-500 focus:border-transparent transition-all duration-200 bg-white;
+  }
+}
+

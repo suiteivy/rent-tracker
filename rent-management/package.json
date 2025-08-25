@@ -1,0 +1,40 @@
+{
+  "name": "rent-management",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "setup-reminders": "node scripts/setup-reminder-system.js",
+    "generate-reminders": "node -e \"import('./src/services/ReminderSchedulerService.js').then(m => new m.ReminderSchedulerService()).then(s => s.generateReminderSchedules()).then(r => console.log('Generated:', r)).catch(e => console.error(e))\"",
+    "test-reminders": "node -e \"import('./src/services/ReminderSchedulerService.js').then(m => new m.ReminderSchedulerService()).then(s => s.getTodaysReminders()).then(r => console.log('Today\\'s reminders:', r.length)).catch(e => console.error(e))\""
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.54.0",
+    "@tailwindcss/postcss": "^4.1.11",
+    "framer-motion": "^12.23.12",
+    "jspdf": "^3.0.1",
+    "jspdf-autotable": "^5.0.2",
+    "lucide-react": "^0.540.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-router-dom": "^7.7.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.30.1",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "@vitejs/plugin-react": "^4.6.0",
+    "autoprefixer": "^10.4.21",
+    "eslint": "^9.30.1",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.20",
+    "globals": "^16.3.0",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.17",
+    "vite": "^6.0.0"
+  }
+}
