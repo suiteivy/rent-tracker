@@ -31,6 +31,9 @@ function Navigation() {
               <Link to="/dashboard/rent-log" className={`px-3 sm:px-4 py-2 rounded-airbnb-lg text-sm sm:text-base font-medium transition-all duration-200 ${isActive('/dashboard/rent-log')}`}>
                 Rent Log
               </Link>
+              <Link to="/dashboard/expense-tracker" className={`px-3 sm:px-4 py-2 rounded-airbnb-lg text-sm sm:text-base font-medium transition-all duration-200 ${isActive('/dashboard/expense-tracker')}`}>
+                Expense tracker
+              </Link>
               <Link to="/dashboard/maintenance" className={`px-3 sm:px-4 py-2 rounded-airbnb-lg text-sm sm:text-base font-medium transition-all duration-200 ${isActive('/dashboard/maintenance')}`}>
                 Maintenance
               </Link>
