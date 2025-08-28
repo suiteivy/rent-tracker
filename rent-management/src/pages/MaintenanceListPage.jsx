@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import MaintenanceList from '../components/MaintenanceList';
 import MaintenanceFilters from '../components/MaintenanceFilters';
+import { maintenanceService } from '../services/maintenanceService';
 
 function MaintenanceListPage() {
   const [requests, setRequests] = useState([]);
@@ -11,18 +12,15 @@ function MaintenanceListPage() {
     category: 'all'
   });
 
-  // Mock data for Sprint 1 - will be replaced with real Supabase calls in Sprint 3
-  const mockRequests = [];
-
   useEffect(() => {
-    // Simulate loading for Sprint 1
-    const timer = setTimeout(() => {
-      setRequests(mockRequests);
+    const load = async () => {
+      setLoading(true);
+      const { success, data } = await maintenanceService.getAllRequests(filters);
+      if (success) setRequests(data || []);
       setLoading(false);
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, []);
+    };
+    load();
+  }, [filters]);
 
   const filteredRequests = requests.filter(request => {
     if (filters.status !== 'all' && request.status !== filters.status) return false;
@@ -61,7 +59,7 @@ function MaintenanceListPage() {
               </div>
               <div>
                 <p className="text-sm font-medium text-airbnb-500">Pending</p>
-                <p className="text-3xl font-bold text-airbnb-900">0</p>
+                <p className="text-3xl font-bold text-airbnb-900">{requests.filter(r => r.status === 'pending').length}</p>
               </div>
             </div>
           </div>
@@ -76,7 +74,7 @@ function MaintenanceListPage() {
               </div>
               <div>
                 <p className="text-sm font-medium text-airbnb-500">In Progress</p>
-                <p className="text-3xl font-bold text-airbnb-900">0</p>
+                <p className="text-3xl font-bold text-airbnb-900">{requests.filter(r => r.status === 'in_progress').length}</p>
               </div>
             </div>
           </div>
@@ -90,7 +88,7 @@ function MaintenanceListPage() {
               </div>
               <div>
                 <p className="text-sm font-medium text-airbnb-500">Completed</p>
-                <p className="text-3xl font-bold text-airbnb-900">0</p>
+                <p className="text-3xl font-bold text-airbnb-900">{requests.filter(r => r.status === 'completed').length}</p>
               </div>
             </div>
           </div>
@@ -104,7 +102,7 @@ function MaintenanceListPage() {
               </div>
               <div>
                 <p className="text-sm font-medium text-airbnb-500">Emergency</p>
-                <p className="text-3xl font-bold text-airbnb-900">0</p>
+                <p className="text-3xl font-bold text-airbnb-900">{requests.filter(r => r.priority === 'emergency').length}</p>
               </div>
             </div>
           </div>

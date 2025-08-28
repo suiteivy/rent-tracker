@@ -22,7 +22,8 @@ export const createProperty = async (propertyData) => {
       property_type: propertyData.propertyType || 'residential',
       description: propertyData.description?.trim() || null,
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
+      owner_id: (await supabase.auth.getUser()).data.user?.id || null
     };
 
     const { data, error } = await supabase
@@ -50,6 +51,12 @@ export const getProperties = async (filters = {}) => {
       .from('properties')
       .select('*')
       .order('created_at', { ascending: false });
+
+    // scope by owner
+    const currentUser = (await supabase.auth.getUser()).data.user;
+    if (currentUser) {
+      query = query.eq('owner_id', currentUser.id);
+    }
 
     // apply filters if provided
     if (filters.propertyType) {
@@ -246,7 +253,8 @@ export const createUnit = async (unitData) => {
       description: unitData.description?.trim() || null,
       amenities: unitData.amenities || [],
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
+      owner_id: (await supabase.auth.getUser()).data.user?.id || null
     };
 
     const { data, error } = await supabase
@@ -287,6 +295,12 @@ export const getUnits = async (filters = {}) => {
         )
       `)
       .order('created_at', { ascending: false });
+
+    // scope by owner
+    const currentUser = (await supabase.auth.getUser()).data.user;
+    if (currentUser) {
+      query = query.eq('owner_id', currentUser.id);
+    }
 
     // apply filters if provided
     if (filters.propertyId) {

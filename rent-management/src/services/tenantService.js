@@ -27,7 +27,8 @@ export const createTenant = async (tenantData) => {
       emergency_contact: tenantData.emergencyContact?.trim() || null,
       emergency_phone: tenantData.emergencyPhone?.trim() || null,
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
+      owner_id: (await supabase.auth.getUser()).data.user?.id || null
     };
 
     const { data, error } = await supabase
@@ -55,6 +56,10 @@ export const getTenants = async (filters = {}) => {
       .from('tenants')
       .select('*')
       .order('created_at', { ascending: false });
+    const currentUser = (await supabase.auth.getUser()).data.user;
+    if (currentUser) {
+      query = query.eq('owner_id', currentUser.id);
+    }
 
     // apply filters if provided
     if (filters.search) {
@@ -112,10 +117,12 @@ export const getTenantById = async (tenantId) => {
       throw new Error('Tenant ID is required');
     }
 
+    const currentUser = (await supabase.auth.getUser()).data.user;
     const { data, error } = await supabase
       .from('tenants')
       .select('*')
       .eq('id', tenantId)
+      .eq('owner_id', currentUser?.id || null)
       .single();
 
     if (error) {
@@ -174,10 +181,12 @@ export const updateTenant = async (tenantId, updateData) => {
     delete tenantToUpdate.emergencyContact;
     delete tenantToUpdate.emergencyPhone;
 
+    const currentUser = (await supabase.auth.getUser()).data.user;
     const { data, error } = await supabase
       .from('tenants')
       .update(tenantToUpdate)
       .eq('id', tenantId)
+      .eq('owner_id', currentUser?.id || null)
       .select()
       .single();
 
@@ -216,10 +225,12 @@ export const deleteTenant = async (tenantId) => {
       throw new Error('Cannot delete tenant that has active leases. Please terminate all active leases first.');
     }
 
+    const currentUser = (await supabase.auth.getUser()).data.user;
     const { error } = await supabase
       .from('tenants')
       .delete()
-      .eq('id', tenantId);
+      .eq('id', tenantId)
+      .eq('owner_id', currentUser?.id || null);
 
     if (error) {
       console.error('Supabase error deleting tenant:', error);

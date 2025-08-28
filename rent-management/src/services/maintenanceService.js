@@ -6,6 +6,7 @@ export const maintenanceService = {
   // Create maintenance request (Sprint 3)
   async createRequest(requestData) {
     try {
+      const currentUser = (await supabase.auth.getUser()).data.user;
       const { data, error } = await supabase
         .from('maintenance_requests')
         .insert([{
@@ -21,6 +22,7 @@ export const maintenanceService = {
           location: requestData.location,
           status: 'pending',
           images: requestData.images || [],
+          owner_id: currentUser?.id || null,
           whatsapp_thread: {
             original_message: requestData.originalMessage,
             messages: []
@@ -49,6 +51,10 @@ export const maintenanceService = {
           unit:units(id, unit_number)
         `)
         .order('created_at', { ascending: false });
+      const currentUser = (await supabase.auth.getUser()).data.user;
+      if (currentUser) {
+        query = query.eq('owner_id', currentUser.id);
+      }
 
       // Apply filters
       if (filters.status && filters.status !== 'all') {
