@@ -396,6 +396,26 @@ export const getLeasesByTenant = async (tenantId) => {
   }
 };
 
+
+// Renew lease (update end_date and reset status)
+export const renewLease = async (leaseId, newEndDate) => {
+  const { data, error } = await supabase
+    .from("leases")
+    .update({ 
+      end_date: newEndDate, 
+      status: "active" 
+    })
+    .eq("id", leaseId)
+    .select();
+
+  if (error) {
+    console.error("Error renewing lease:", error.message);
+    throw error;
+  }
+  return data;
+};
+
+
 // Get lease statistics
 export const getLeaseStats = async () => {
   try {
@@ -447,4 +467,5 @@ export const getLeaseStats = async () => {
     console.error('Error fetching lease stats:', error);
     return { data: null, error: error.message };
   }
+  
 }; 
