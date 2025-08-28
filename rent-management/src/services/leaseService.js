@@ -54,7 +54,8 @@ export const createLease = async (leaseData) => {
       status: leaseData.status || 'active',
       notes: leaseData.notes?.trim() || null,
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
+      owner_id: (await supabase.auth.getUser()).data.user?.id || null
     };
 
     const { data, error } = await supabase
@@ -114,6 +115,10 @@ export const getLeases = async (filters = {}) => {
         )
       `)
       .order('created_at', { ascending: false });
+    const currentUser = (await supabase.auth.getUser()).data.user;
+    if (currentUser) {
+      query = query.eq('owner_id', currentUser.id);
+    }
 
     // apply filters if provided
     if (filters.unitId) {
@@ -183,7 +188,7 @@ export const getLeaseById = async (leaseId) => {
       throw new Error('Lease ID is required');
     }
 
-    const { data, error } = await supabase
+    let query = supabase
       .from('leases')
       .select(`
         *,
@@ -204,8 +209,12 @@ export const getLeaseById = async (leaseId) => {
           phone_number
         )
       `)
-      .eq('id', leaseId)
-      .single();
+      .eq('id', leaseId);
+    const currentUser = (await supabase.auth.getUser()).data.user;
+    if (currentUser) {
+      query = query.eq('owner_id', currentUser.id);
+    }
+    const { data, error } = await query.single();
 
     if (error) {
       console.error('Supabase error fetching lease:', error);
@@ -269,10 +278,12 @@ export const updateLease = async (leaseId, updateData) => {
     delete leaseToUpdate.depositCurrency;
     delete leaseToUpdate.rentCurrency;
 
+    const currentUser = (await supabase.auth.getUser()).data.user;
     const { data, error } = await supabase
       .from('leases')
       .update(leaseToUpdate)
       .eq('id', leaseId)
+      .eq('owner_id', currentUser?.id || null)
       .select(`
         *,
         units (
@@ -448,3 +459,101 @@ export const getLeaseStats = async () => {
     return { data: null, error: error.message };
   }
 }; 
+
+// Renew lease by extending end date or creating a fresh record
+// Strategy: default is to extend the existing lease's end_date by a number of months
+// Options:
+// - months: number of months to extend (default 12)
+// - newRentAmount: optional updated rent
+// - createNew: if true, mark current lease as 'expired' and create a new active lease
+export const renewLease = async (leaseId, options = {}) => {
+  const {
+    months = 12,
+    newRentAmount,
+    createNew = false
+  } = options;
+
+  try {
+    if (!leaseId) throw new Error('Lease ID is required');
+
+    // Load existing lease
+    const currentUser = (await supabase.auth.getUser()).data.user;
+    const { data: existing, error: loadError } = await supabase
+      .from('leases')
+      .select('*')
+      .eq('id', leaseId)
+      .eq('owner_id', currentUser?.id || null)
+      .single();
+
+    if (loadError) throw new Error(loadError.message);
+    if (!existing) throw new Error('Lease not found');
+
+    // Compute new end date by adding months to current end_date (or today if missing)
+    const baseDate = existing.end_date ? new Date(existing.end_date) : new Date();
+    const newEnd = new Date(baseDate);
+    newEnd.setMonth(newEnd.getMonth() + months);
+
+    if (!createNew) {
+      // Extend the same lease
+      const updatePayload = {
+        end_date: newEnd.toISOString(),
+        status: 'active',
+        updated_at: new Date().toISOString()
+      };
+      if (newRentAmount !== undefined) {
+        if (newRentAmount <= 0) throw new Error('New rent must be greater than 0');
+        updatePayload.rent_amount = newRentAmount;
+      }
+
+      const { data, error } = await supabase
+        .from('leases')
+        .update(updatePayload)
+        .eq('id', leaseId)
+        .eq('owner_id', currentUser?.id || null)
+        .select('*')
+        .single();
+
+      if (error) throw new Error(error.message);
+      return { data, error: null };
+    }
+
+    // Otherwise, close current lease and create a new one
+    const { error: closeError } = await supabase
+      .from('leases')
+      .update({ status: 'expired', updated_at: new Date().toISOString() })
+      .eq('id', leaseId)
+      .eq('owner_id', currentUser?.id || null);
+
+    if (closeError) throw new Error(closeError.message);
+
+    const insertPayload = {
+      unit_id: existing.unit_id,
+      tenant_id: existing.tenant_id,
+      rent_amount: newRentAmount !== undefined ? newRentAmount : existing.rent_amount,
+      rent_currency: existing.rent_currency,
+      rent_frequency: existing.rent_frequency,
+      due_date: existing.due_date,
+      start_date: existing.end_date || new Date().toISOString(),
+      end_date: newEnd.toISOString(),
+      deposit_amount: existing.deposit_amount,
+      deposit_currency: existing.deposit_currency,
+      status: 'active',
+      notes: existing.notes,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      owner_id: currentUser?.id || null
+    };
+
+    const { data: newLease, error: createError } = await supabase
+      .from('leases')
+      .insert([insertPayload])
+      .select('*')
+      .single();
+
+    if (createError) throw new Error(createError.message);
+    return { data: newLease, error: null };
+  } catch (error) {
+    console.error('Error renewing lease:', error);
+    return { data: null, error: error.message };
+  }
+};

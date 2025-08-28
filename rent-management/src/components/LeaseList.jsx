@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { getLeases } from '../services/leaseService.js';
+import { getLeases, renewLease } from '../services/leaseService.js';
 import { formatDate, formatCurrency } from '../utils/formatters';
 
 // Lease list component
@@ -32,6 +32,18 @@ const LeaseList = () => {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRenew = async (leaseId) => {
+    try {
+      const confirm = window.confirm('Renew this lease for 12 more months?');
+      if (!confirm) return;
+      const { error } = await renewLease(leaseId, { months: 12 });
+      if (error) throw new Error(error);
+      await loadLeases();
+    } catch (err) {
+      alert(`Failed to renew lease: ${err.message}`);
     }
   };
 
@@ -354,6 +366,14 @@ const LeaseList = () => {
                       >
                         Edit
                       </Link>
+                      <button
+                        type="button"
+                        onClick={() => handleRenew(lease.id)}
+                        className="text-green-700 hover:text-green-900"
+                        title="Renew for 12 months"
+                      >
+                        Renew
+                      </button>
                     </div>
                   </td>
                 </tr>
