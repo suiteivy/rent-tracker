@@ -8,6 +8,7 @@ export const getExpenses = async () => {
     .select(`
       id,
       amount,
+      category,
       description,
       created_at,
       property_id,
@@ -17,7 +18,7 @@ export const getExpenses = async () => {
 };
 
 // Add a new expense
-export const addExpense = async ({ amount, description, property_id }) => {
+export const addExpense = async ({ amount, category,description, property_id }) => {
   if (!property_id) {
     return { data: null, error: 'property_id is required' };
   }
@@ -25,7 +26,7 @@ export const addExpense = async ({ amount, description, property_id }) => {
   const { data, error } = await supabase
     .from('expenses')
     .insert([
-      { amount, description, property_id }
+      { amount, category,description, property_id }
     ])
     .select();
 
