@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { usePropertyManagement } from '../hooks/usePropertyManagement'; // Adjust path as needed
-import DashboardStats from '../components/DashboardStats'; // Adjust path as needed
-import LeaseStats from '../components/LeaseStats'; // Adjust path as needed
-import PropertyFilters from '../components/PropertyFilters'; // Adjust path as needed
-import PropertyCard from '../components/PropertyCard'; // Adjust path as needed
+import { usePropertyManagement } from '../hooks/usePropertyManagement'; 
+import DashboardStats from '../components/DashboardStats'; 
+import LeaseStats from '../components/LeaseStats'; 
+import PropertyFilters from '../components/PropertyFilters'; 
+import PropertyCard from '../components/PropertyCard';
+import PieChart from '../components/PieChart'; 
 
 function DashboardHome() {
   const [expandedProperties, setExpandedProperties] = useState(new Set());

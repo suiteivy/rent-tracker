@@ -32,3 +32,30 @@ export const addExpense = async ({ amount, category,description, property_id }) 
 
   return { data, error };
 };
+
+//total expenses
+export const getTotalExpenses = async () => {
+  const { data, error } = await supabase
+    .from("expenses")
+    .select("amount, created_at");
+
+  if (error) {
+    console.error("Error fetching expenses:", error);
+    return 0;
+  }
+
+  // Filter by current month
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+
+  const monthlyExpenses = data
+    ?.filter((row) => {
+      const d = new Date(row.created_at);
+      return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+    })
+    .reduce((sum, row) => sum + row.amount, 0);
+
+  return monthlyExpenses || 0;
+};
+
