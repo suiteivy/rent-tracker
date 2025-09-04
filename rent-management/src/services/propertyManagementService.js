@@ -1,46 +1,57 @@
-import { supabase } from '../supabaseClient.js';
+ import { supabase } from '../supabaseClient.js';
 
-// Property operations
-export const createProperty = async (propertyData) => {
+ /**
+ * Get the current logged-in user safely
+ */
+export const getCurrentUser = async () => {
+  const { data, error } = await supabase.auth.getUser();
+  if (error) {
+    console.error("Error fetching user:", error.message);
+    return null;
+  }
+  return data?.user || null;
+};
+
+/**
+ * Insert a row with user_id automatically attached
+ */
+export const insertWithUser = async (table, row) => {
   try {
-    // check required fields
-    const requiredFields = ['name', 'address', 'city', 'county'];
-    for (const field of requiredFields) {
-      if (!propertyData[field] || !propertyData[field].trim()) {
-        throw new Error(`${field} is required`);
-      }
-    }
+    const user = await getCurrentUser();
+    if (!user) throw new Error("User not logged in");
 
-    // prepare data
-    const propertyToInsert = {
-      name: propertyData.name.trim(),
-      address: propertyData.address.trim(),
-      city: propertyData.city.trim(),
-      county: propertyData.county.trim(),
-      postal_code: propertyData.postalCode?.trim() || null,
-      phone_number: propertyData.phoneNumber?.trim() || null,
-      property_type: propertyData.propertyType || 'residential',
-      description: propertyData.description?.trim() || null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
+    const rowWithUser = { ...row, user_id: user.id };
 
     const { data, error } = await supabase
-      .from('properties')
-      .insert([propertyToInsert])
-      .select()
-      .single();
+      .from(table)
+      .insert([rowWithUser])
+      .select();
 
-    if (error) {
-      console.error('Supabase error creating property:', error);
-      throw new Error(error.message);
-    }
-
-    return { data, error: null };
-  } catch (error) {
-    console.error('Error creating property:', error);
-    return { data: null, error: error.message };
+    if (error) throw error;
+    return data[0];
+  } catch (err) {
+    console.error(`Insert failed for ${table}:`, err.message);
+    return null; // prevent crash
   }
+};
+/**
+ * Create a property
+ */
+export const createProperty = async (propertyData) => {
+  const propertyToInsert = {
+    name: propertyData.name.trim(),
+    address: propertyData.address.trim(),
+    city: propertyData.city.trim(),
+    county: propertyData.county.trim(),
+    postal_code: propertyData.postalCode?.trim() || null,
+    phone_number: propertyData.phoneNumber?.trim() || null,
+    property_type: propertyData.propertyType || 'residential',
+    description: propertyData.description?.trim() || null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+
+  return await insertWithUser('properties', propertyToInsert);
 };
 
 // Get all properties
@@ -215,56 +226,29 @@ export const deleteProperty = async (propertyId) => {
  * @param {Object} unitData - unit data object
  * @returns {Object} - { data, error }
  */
+/**
+ * Create a unit
+ */
 export const createUnit = async (unitData) => {
-  try {
-    // validate required fields
-    const requiredFields = ['propertyId', 'unitNumber', 'rentAmount'];
-    for (const field of requiredFields) {
-      if (!unitData[field] || !unitData[field].toString().trim()) {
-        throw new Error(`${field} is required`);
-      }
-    }
+  const unitToInsert = {
+    property_id: unitData.propertyId,
+    unit_number: unitData.unitNumber.trim(),
+    unit_type: unitData.unitType || 'apartment',
+    bedrooms: unitData.bedrooms || 0,
+    bathrooms: unitData.bathrooms || 0,
+    square_feet: unitData.squareFeet || null,
+    rent_amount: unitData.rentAmount,
+    rent_currency: unitData.rentCurrency || 'KES',
+    deposit_amount: unitData.depositAmount || null,
+    deposit_currency: unitData.depositCurrency || 'KES',
+    is_available: unitData.isAvailable !== undefined ? unitData.isAvailable : true,
+    description: unitData.description?.trim() || null,
+    amenities: unitData.amenities || [],
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
 
-    // validate rent amount
-    if (unitData.rentAmount <= 0) {
-      throw new Error('Rent amount must be greater than 0');
-    }
-
-    // prepare data for insertion
-    const unitToInsert = {
-      property_id: unitData.propertyId,
-      unit_number: unitData.unitNumber.trim(),
-      unit_type: unitData.unitType || 'apartment',
-      bedrooms: unitData.bedrooms || 0,
-      bathrooms: unitData.bathrooms || 0,
-      square_feet: unitData.squareFeet || null,
-      rent_amount: unitData.rentAmount,
-      rent_currency: unitData.rentCurrency || 'KES',
-      deposit_amount: unitData.depositAmount || null,
-      deposit_currency: unitData.depositCurrency || 'KES',
-      is_available: unitData.isAvailable !== undefined ? unitData.isAvailable : true,
-      description: unitData.description?.trim() || null,
-      amenities: unitData.amenities || [],
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
-
-    const { data, error } = await supabase
-      .from('units')
-      .insert([unitToInsert])
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Supabase error creating unit:', error);
-      throw new Error(error.message);
-    }
-
-    return { data, error: null };
-  } catch (error) {
-    console.error('Error creating unit:', error);
-    return { data: null, error: error.message };
-  }
+  return await insertWithUser('units', unitToInsert);
 };
 
 /**
@@ -773,4 +757,4 @@ export const getPropertiesWithUnitCount = async (filters = {}) => {
     console.error('Error fetching properties with unit count:', error);
     return { data: [], error: error.message };
   }
-}; 
+};  

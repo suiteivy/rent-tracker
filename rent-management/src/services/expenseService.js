@@ -1,7 +1,13 @@
 import { supabase } from '../supabaseClient';
 
+// Helper: get current user
+const getCurrentUser = async () => {
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (error || !user) throw new Error('User not authenticated');
+  return user;
+};
 
-// Fetch all expenses with property info
+// Fetch all expenses )
 export const getExpenses = async () => {
   const { data, error } = await supabase
     .from('expenses')
@@ -13,27 +19,34 @@ export const getExpenses = async () => {
       created_at,
       property_id,
       properties ( id, name )
-    `); 
+    `);
+
   return { data, error };
 };
 
-// Add a new expense
-export const addExpense = async ({ amount, category,description, property_id }) => {
+// Add a new expense (attach user_id automatically)
+export const addExpense = async ({ amount, category, description, property_id }) => {
   if (!property_id) {
     return { data: null, error: 'property_id is required' };
   }
 
-  const { data, error } = await supabase
-    .from('expenses')
-    .insert([
-      { amount, category,description, property_id }
-    ])
-    .select();
+  try {
+    const user = await getCurrentUser();
 
-  return { data, error };
+    const { data, error } = await supabase
+      .from('expenses')
+      .insert([
+        { amount, category, description, property_id, user_id: user.id }
+      ])
+      .select();
+
+    return { data, error };
+  } catch (err) {
+    return { data: null, error: err.message };
+  }
 };
 
-//total expenses
+// Total expenses for current month (RLS auto-filters per user)
 export const getTotalExpenses = async () => {
   const { data, error } = await supabase
     .from("expenses")
@@ -44,7 +57,6 @@ export const getTotalExpenses = async () => {
     return 0;
   }
 
-  // Filter by current month
   const now = new Date();
   const currentMonth = now.getMonth();
   const currentYear = now.getFullYear();
@@ -58,4 +70,3 @@ export const getTotalExpenses = async () => {
 
   return monthlyExpenses || 0;
 };
-

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import StatCard from './StatCard';
 import { formatCurrency } from '../utils/formatters';
 import { supabase } from '../supabaseClient'; 
-import IncomeExpensePieChart from './PieChart'; // ✅ already created
+import IncomeExpensePieChart from './PieChart'; 
 
 /**
  * Dashboard statistics component
@@ -10,7 +10,7 @@ import IncomeExpensePieChart from './PieChart'; // ✅ already created
 const DashboardStats = ({ stats }) => {
   const [totalExpenses, setTotalExpenses] = useState(0);
 
-  // ✅ Fetch expenses directly from Supabase
+  //  Fetch expenses directly from Supabase
   useEffect(() => {
     const fetchExpenses = async () => {
       const { data, error } = await supabase.from('expenses').select('amount');
@@ -100,7 +100,7 @@ const DashboardStats = ({ stats }) => {
 
   return (
     <div className="space-y-8">
-      {/* ✅ Stat Cards */}
+      {/* Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 lg:gap-6">
         {statCards.map((card, index) => (
           <StatCard

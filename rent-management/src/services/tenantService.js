@@ -1,5 +1,15 @@
 import { supabase } from '../supabaseClient.js';
 
+// helper to get the logged-in user
+const getCurrentUser = async () => {
+  const { data, error } = await supabase.auth.getUser();
+  if (error) {
+    console.error("Error fetching user:", error.message);
+    return null;
+  }
+  return data?.user || null;
+};
+
 // Tenant operations
 export const createTenant = async (tenantData) => {
   try {
@@ -17,6 +27,10 @@ export const createTenant = async (tenantData) => {
       throw new Error('Please enter a valid email address');
     }
 
+    // get user
+    const user = await getCurrentUser();
+    if (!user) throw new Error("User not logged in");
+
     // prepare data
     const tenantToInsert = {
       name: tenantData.name.trim(),
@@ -27,7 +41,8 @@ export const createTenant = async (tenantData) => {
       emergency_contact: tenantData.emergencyContact?.trim() || null,
       emergency_phone: tenantData.emergencyPhone?.trim() || null,
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
+      user_id: user.id   // 🔑 attach ownership
     };
 
     const { data, error } = await supabase
@@ -56,14 +71,13 @@ export const getTenants = async (filters = {}) => {
       .select('*')
       .order('created_at', { ascending: false });
 
-    // apply filters if provided
+    // filters (RLS already ensures user only sees their own rows)
     if (filters.search) {
       query = query.or(`name.ilike.%${filters.search}%,email.ilike.%${filters.search}%,contact.ilike.%${filters.search}%`);
     }
 
     if (filters.hasActiveLease !== undefined) {
       if (filters.hasActiveLease) {
-        // Get tenants with active leases
         query = supabase
           .from('tenants')
           .select(`
@@ -76,7 +90,6 @@ export const getTenants = async (filters = {}) => {
           .eq('leases.status', 'active')
           .order('created_at', { ascending: false });
       } else {
-        // Get tenants without active leases
         query = supabase
           .from('tenants')
           .select(`
@@ -108,9 +121,7 @@ export const getTenants = async (filters = {}) => {
 // Get tenant by ID
 export const getTenantById = async (tenantId) => {
   try {
-    if (!tenantId) {
-      throw new Error('Tenant ID is required');
-    }
+    if (!tenantId) throw new Error('Tenant ID is required');
 
     const { data, error } = await supabase
       .from('tenants')
@@ -133,9 +144,7 @@ export const getTenantById = async (tenantId) => {
 // Update tenant
 export const updateTenant = async (tenantId, updateData) => {
   try {
-    if (!tenantId) {
-      throw new Error('Tenant ID is required');
-    }
+    if (!tenantId) throw new Error('Tenant ID is required');
 
     // check fields
     const requiredFields = ['name', 'contact', 'email'];
@@ -196,11 +205,8 @@ export const updateTenant = async (tenantId, updateData) => {
 // Delete tenant
 export const deleteTenant = async (tenantId) => {
   try {
-    if (!tenantId) {
-      throw new Error('Tenant ID is required');
-    }
+    if (!tenantId) throw new Error('Tenant ID is required');
 
-    // check if tenant has active leases before deleting
     const { data: leases, error: leasesError } = await supabase
       .from('leases')
       .select('id, status')

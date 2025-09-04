@@ -1,5 +1,12 @@
 import { supabase } from '../supabaseClient.js';
 
+// helper to get current user
+const getCurrentUser = async () => {
+  const { data, error } = await supabase.auth.getUser();
+  if (error || !data.user) throw new Error('User not authenticated');
+  return data.user;
+};
+
 // Lease operations
 export const createLease = async (leaseData) => {
   try {
@@ -30,16 +37,15 @@ export const createLease = async (leaseData) => {
       .eq('unit_id', leaseData.unitId)
       .eq('status', 'active');
 
-    if (checkError) {
-      console.error('Error checking unit availability:', checkError);
-      throw new Error('Failed to check unit availability');
-    }
-
+    if (checkError) throw new Error('Failed to check unit availability');
     if (existingLeases && existingLeases.length > 0) {
       throw new Error('Unit already has an active lease. Please terminate the existing lease first.');
     }
 
-    // prepare data
+    // 🔑 get logged in user
+    const user = await getCurrentUser();
+
+    // prepare data with user_id
     const leaseToInsert = {
       unit_id: leaseData.unitId,
       tenant_id: leaseData.tenantId,
@@ -54,7 +60,8 @@ export const createLease = async (leaseData) => {
       status: leaseData.status || 'active',
       notes: leaseData.notes?.trim() || null,
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
+      user_id: user.id // attach user_id
     };
 
     const { data, error } = await supabase
@@ -79,10 +86,7 @@ export const createLease = async (leaseData) => {
       `)
       .single();
 
-    if (error) {
-      console.error('Supabase error creating lease:', error);
-      throw new Error(error.message);
-    }
+    if (error) throw new Error(error.message);
 
     return { data, error: null };
   } catch (error) {
